@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import closeness.centrality.entity.EdgeWithTimestamp;
-import closeness.centrality.entity.VertexCentrality;
 
 public class TimeEvolvingGraphInsertionOnly {
 	

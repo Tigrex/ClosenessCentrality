@@ -1,4 +1,4 @@
-package closeness.centrality.entity;
+package closeness.centrality.topk;
 
 public class VertexCentrality implements Comparable<VertexCentrality> {
 

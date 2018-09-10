@@ -1195,6 +1195,7 @@ public class TimeEvolvingGraphDecremental {
 	}
 	
 	
+	@SuppressWarnings("unused")
 	private SSSPTree buildSSSPTree(int source) {
 		
 		Map<Integer, Set<Integer>> initialGraph = this.deltaGraph.get(0);
