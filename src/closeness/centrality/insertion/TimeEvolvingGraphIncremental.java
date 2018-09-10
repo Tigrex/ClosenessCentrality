@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import closeness.centrality.entity.EdgeWithTimestamp;
@@ -28,9 +27,7 @@ public class TimeEvolvingGraphIncremental {
 	
 	private int numVertices;
 	private int numSnapshots;
-	
 	private List<List<EdgeWithTimestamp>> condensedGraph;
-	
 	private List<Map<Integer, Set<Integer>>> deltaGraph;
 	
 	final private Logger logger = LoggerFactory.getLogger(TimeEvolvingGraphIncremental.class);
@@ -54,13 +51,9 @@ public class TimeEvolvingGraphIncremental {
 		Set<Integer> vertices = new HashSet<Integer>();
 		Set<Integer> timestamps = new HashSet<Integer>();
 		
-		
 		Map<Integer, Map<Integer, Integer>> condensed = new HashMap<Integer, Map<Integer, Integer>>() ;
-		
 		Map<Integer, Map<Integer, Set<Integer>>> snapshots = new HashMap<Integer, Map<Integer, Set<Integer>>>();
 
-
-		
 		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
 		    String line;
 		    String[] parts;
@@ -117,7 +110,6 @@ public class TimeEvolvingGraphIncremental {
 	    			snapshots.put(timestamp, snapshot);
 		    	}
 		    	
-		    	
 		    	// Update condensedGraph
 		    	if (condensed.containsKey(source)) {
 		    		
@@ -138,7 +130,6 @@ public class TimeEvolvingGraphIncremental {
 		    	
 		    }
 		    
-
 			int minVertexId = Integer.MAX_VALUE;
 			int maxVertexId = 0;
 			int minTimestamp = Integer.MAX_VALUE;
@@ -225,7 +216,7 @@ public class TimeEvolvingGraphIncremental {
 	}
 	
 	
-	public double[] getCentralityRangeBased(int source) {
+	public double[] getCentralityRangeBased_v1(int source) {
 		
 		int[] sccSize = new int[this.numSnapshots];
 		
@@ -336,7 +327,7 @@ public class TimeEvolvingGraphIncremental {
 				
 	}
 	
-	public double[] getCentralityRangeSetBased(int source) {
+	public double[] getCentralityRangeBased_v2(int source) {
 		
 		int[] sccSize = new int[this.numSnapshots];
 		
@@ -438,11 +429,111 @@ public class TimeEvolvingGraphIncremental {
 				
 	}
 
+	public double[] getCentralityRangeBased_v3(int source) {
+		
+		int[] sccSize = new int[this.numSnapshots];
+		
+		double[] centralities = new double[this.numSnapshots];
+		Arrays.fill(centralities, 0);
+		
+		// Values default to be 0
+		int[] totalDistances = new int[this.numSnapshots];
+		
+		int[] discoveredTime = new int[this.numVertices];
+		Arrays.fill(discoveredTime, Integer.MAX_VALUE);
+		
+		int level = 0;
+		
+		int[] currentLevel = new int[this.numVertices];
+		Arrays.fill(currentLevel, Integer.MAX_VALUE);
+		int[] nextLevel = new int[this.numVertices];
+		Arrays.fill(nextLevel, Integer.MAX_VALUE);
+
+		currentLevel[source] = 0;
+		
+		int[] verticesPerTimestamp = new int[this.numSnapshots];
+		
+		boolean hasNext = true;
+				
+		while (hasNext) {
+			
+			Arrays.fill(verticesPerTimestamp, 0);
+			
+			for (int vertex = 0; vertex < this.numVertices; vertex++) {
+				
+				int t = currentLevel[vertex];
+				
+				if (t != Integer.MAX_VALUE) {
+
+					verticesPerTimestamp[t]++;
+					
+					if (discoveredTime[vertex] != Integer.MAX_VALUE) {
+						verticesPerTimestamp[discoveredTime[vertex]]--;
+					}
+					
+					// Update discovered time
+					discoveredTime[vertex] = t;
+					
+					//Add next level
+					for (EdgeWithTimestamp edge: this.condensedGraph.get(vertex)) {
+						
+						int neighbor = edge.getTarget();
+						int neighborDiscoverTime = Math.max(edge.getTimestamp(), currentLevel[vertex]);
+						
+						if (neighborDiscoverTime < discoveredTime[neighbor] && neighborDiscoverTime < currentLevel[neighbor]) {
+							
+							if (neighborDiscoverTime < nextLevel[neighbor]) {
+								nextLevel[neighbor] = neighborDiscoverTime;
+							}
+							
+						}
+					}
+					
+				}
+				
+			}
+			
+			// Update distance
+			int localSummary = 0;
+			
+			for (int i = 0; i < this.numSnapshots; i++) {
+				localSummary += verticesPerTimestamp[i];
+				sccSize[i] += localSummary;
+				totalDistances[i] += level * localSummary;
+			}
+			
+			// Begin next iteration
+			hasNext = false;
+			for (int i = 0; i < this.numVertices; i++) {
+				currentLevel[i] = nextLevel[i];
+				if (nextLevel[i] != Integer.MAX_VALUE) {
+					hasNext = true;
+					nextLevel[i] = Integer.MAX_VALUE;
+				}
+			}
+			
+			level++;
+			
+		}
+		
+		for (int i = 0; i < this.numSnapshots; i++) {
+			if (totalDistances[i] == 0) {
+				centralities[i] = 0;
+			} else {
+				centralities[i] = 1.0 * (double)(sccSize[i] - 1) * (double)(sccSize[i] - 1) / (double)totalDistances[i] / (double)(this.numVertices - 1);
+			}
+			
+		}
+		
+		return centralities;
+				
+	}
+	
 	public double getAverageNumberOfLabels(int source) {
 		
 		int totalLabels = 0;
 
-		int[] sccSize = new int[this.numSnapshots]; // Calculate scc size
+		int[] sccSize = new int[this.numSnapshots];
 		
 		int[] discoveredTime = new int[this.numVertices];
 		Arrays.fill(discoveredTime, Integer.MAX_VALUE);
@@ -459,7 +550,7 @@ public class TimeEvolvingGraphIncremental {
 		int[] endingPoints = new int[this.numSnapshots];
 		
 		boolean hasNext = true;
-				
+		
 		while (hasNext) {
 			
 			Arrays.fill(verticesPerTimestamp, 0);
@@ -508,7 +599,6 @@ public class TimeEvolvingGraphIncremental {
 				
 			}
 			
-			
 			// Update sccSize
 			int localSummary = verticesPerTimestamp[0];
 			int positiveCount = startingPoints[0] - endingPoints[0];
@@ -535,290 +625,14 @@ public class TimeEvolvingGraphIncremental {
 			
 		}
 		
-		
-		System.out.println("Total number of labels: " + totalLabels);
-		System.out.println("Total number of reachable vertices in the last time stamp: " + sccSize[this.numSnapshots - 1]);
+		logger.info("Total number of labels: {}", totalLabels);
+		logger.info("Total number of reachable vertices in the last time stamp: {}", sccSize[this.numSnapshots - 1]);
 		
 		double numOfLabels = 1.0 * totalLabels / sccSize[this.numSnapshots - 1];
-		System.out.println("Average number of labels: " + numOfLabels);
-
+		logger.info("Average number of labels: {}", numOfLabels);
 		
 		return numOfLabels;
 	}
-	
-	public double[] getCentralityRangeBufferUpdate(int source) {
-		
-		int[] sccSize = new int[this.numSnapshots];
-		
-		double[] centralities = new double[this.numSnapshots];
-		Arrays.fill(centralities, 0);
-		
-		// Values default to be 0
-		int[] totalDistances = new int[this.numSnapshots];
-		
-		int[] discoveredTime = new int[this.numVertices];
-		Arrays.fill(discoveredTime, Integer.MAX_VALUE);
-		
-		int level = 0;
-		
-		int[] currentLevel = new int[this.numVertices];
-		Arrays.fill(currentLevel, Integer.MAX_VALUE);
-		int[] nextLevel = new int[this.numVertices];
-		Arrays.fill(nextLevel, Integer.MAX_VALUE);
-
-		currentLevel[source] = 0;
-		
-		int[] verticesPerTimestamp = new int[this.numSnapshots];
-		int[] startingPoints = new int[this.numSnapshots];
-		int[] endingPoints = new int[this.numSnapshots];
-		
-		boolean hasNext = true;
-				
-		while (hasNext) {
-			
-			Arrays.fill(verticesPerTimestamp, 0);
-			Arrays.fill(startingPoints, 0);
-			Arrays.fill(endingPoints, 0);
-			
-			for (int vertex = 0; vertex < this.numVertices; vertex++) {
-				
-				if (currentLevel[vertex] != Integer.MAX_VALUE) {
-
-					// Newly discovered vertex, update distance at the end
-					if (discoveredTime[vertex] == Integer.MAX_VALUE) {
-						verticesPerTimestamp[currentLevel[vertex]]++;
-					}
-					// Existing vertex, update distance separately
-					else {
-						
-						startingPoints[currentLevel[vertex]]++;
-						endingPoints[discoveredTime[vertex]]++;
-						
-					}
-					
-					// Update discovered time
-					discoveredTime[vertex] = currentLevel[vertex];
-					
-					//Add next level
-					for (EdgeWithTimestamp edge: this.condensedGraph.get(vertex)) {
-						
-						int neighbor = edge.getTarget();
-						int neighborDiscoverTime = Math.max(edge.getTimestamp(), currentLevel[vertex]);
-						
-						if (neighborDiscoverTime < discoveredTime[neighbor] && neighborDiscoverTime < currentLevel[neighbor]) {
-							
-							if (neighborDiscoverTime < nextLevel[neighbor]) {
-								nextLevel[neighbor] = neighborDiscoverTime;
-							}
-							
-						}
-						
-						
-					}
-					
-				}
-				
-			}
-			
-			
-			// Update distance
-			int localSummary = verticesPerTimestamp[0];
-			int positiveCount = startingPoints[0] - endingPoints[0];
-			
-			totalDistances[0] += level * (localSummary + positiveCount);
-			sccSize[0] += (localSummary + positiveCount);
-				
-			for (int i = 1; i < this.numSnapshots; i++) {
-				localSummary += verticesPerTimestamp[i];
-				positiveCount += startingPoints[i] - endingPoints[i];
-
-				totalDistances[i] += level * (localSummary + positiveCount);
-				sccSize[i] += (localSummary + positiveCount);
-			}
-			
-			
-			// Begin next iteration
-			hasNext = false;
-			for (int i = 0; i < this.numVertices; i++) {
-				currentLevel[i] = nextLevel[i];
-				if (nextLevel[i] != Integer.MAX_VALUE) {
-					hasNext = true;
-					nextLevel[i] = Integer.MAX_VALUE;
-				}
-				
-			}
-			
-			level++;
-			
-		}
-		
-		for (int i = 0; i < this.numSnapshots; i++) {
-			if (totalDistances[i] == 0) {
-				centralities[i] = 0;
-			} else {
-				centralities[i] = 1.0 * (double)(sccSize[i] - 1) * (double)(sccSize[i] - 1) / (double)totalDistances[i] / (double)(this.numVertices - 1);
-			}
-			
-		}
-		
-		return centralities;
-				
-	}
-
-	
-	
-	public void maxDegreeTest() {
-		
-		for (int i = 17; i <= 21; i++) {
-			String path = "data/Scale" + i + "_Edge16.raw.uniform.2000";
-			this.maxDegreeTestHelper(path);
-		}
-		
-		int[] timestamps = {100, 200, 500, 1000, 4000, 8000};
-		
-		for (int i = 0; i < timestamps.length; i++) {
-			String path = "data/Scale21_Edge16.raw.uniform." + timestamps[i];
-			this.maxDegreeTestHelper(path);
-		}
-		
-	}
-	
-	public void randomDegreeTest(int numOfRuns) {
-		
-		for (int i = 17; i <= 21; i++) {
-			String path = "data/Scale" + i + "_Edge16.raw.uniform.2000";
-			this.randomDegreeTestHelper(path, numOfRuns);
-		}
-		
-		int[] timestamps = {100, 200, 500, 1000, 4000, 8000};
-		
-		for (int i = 0; i < timestamps.length; i++) {
-			String path = "data/Scale21_Edge16.raw.uniform." + timestamps[i];
-			this.randomDegreeTestHelper(path, numOfRuns);
-		}
-		
-	}
-	
-	
-	public void syntheticGraphTestHelper(int numOfRuns) {
-		
-//		String scale = "21";
-//		String[] timestamps = {"100", "200", "500", "1000", "2000", "4000", "8000"};
-//		
-//		for (String timestamp: timestamps) {
-//			String path = "data/Scale" + scale + "_Edge16.raw.uniform." + timestamp;	
-//			this.constructGraph(path);
-//			realGraphTestHelper(path, numOfRuns);
-//		}
-		
-		for (int scale = 17; scale <= 21; scale++) {
-			String path = "data/Scale" + scale + "_Edge16.raw.uniform.2000";	
-			this.constructGraph(path);
-			realGraphTestHelper(path, numOfRuns);
-		}
-		
-	}
-	
-	
-	public void realGraphTestHelper(String path, int numOfRuns) {
-		
-		this.logger.info("+realGraphTestHelper({},{})", path, numOfRuns);
-
-		long[] totalRunningTimes = new long[2];
-		totalRunningTimes[0] = 0;
-		totalRunningTimes[1] = 0;
-		
-		// Get random degrees
-		Random random = new Random(0);
-		for (int i = 0; i < numOfRuns; i++) {
-			int degree = random.nextInt(this.numVertices);
-			long[] runningTimes = this.performanceTestHelper(degree);
-			this.logger.info("{}:{},{}", degree, runningTimes[0], runningTimes[1]);
-			
-			totalRunningTimes[0] += runningTimes[0];
-			totalRunningTimes[1] += runningTimes[1];
-			
-		}
-				 
-		this.logger.info("Total running time {},{}", totalRunningTimes[0], totalRunningTimes[1]);
-		this.logger.info("-realGraphTestHelper({})", path);
-
-		
-	}
-
-	
-	
-	public void generateSourceIds(int numOfRuns) {
-		
-		// Get random degrees
-		Random random = new Random(0);
-		for (int i = 0; i < numOfRuns; i++) {
-			int degree = random.nextInt(this.numVertices);
-			System.out.println(degree);
-		}
-		
-	}
-
-	public void averageNumOfLabelsTestHelper(String path, int numOfRuns) {
-		
-		this.logger.info("+averageNumOfLabelsTestHelper({},{})", path, numOfRuns);
-
-		double total = 0;
-		
-		// Get random degrees
-		Random random = new Random(0);
-		for (int i = 0; i < numOfRuns; i++) {
-			int degree = random.nextInt(this.numVertices);
-			
-			double avgLabels = this.getAverageNumberOfLabels(degree);
-			total += avgLabels;
-		}
-		
-		double avg = total / numOfRuns;
-		this.logger.info("Average number of labels of {} vertices is {}.", numOfRuns, avg);
-		this.logger.info("-averageNumOfLabelsTestHelper({})", path);
-		
-	}
-	
-	
-	public boolean correctnessTest(String path) {
-
-		this.logger.info("+correctnessTest({})", path);
-		
-		this.constructGraph(path, false);
-		
-		for (int i = 0; i < 10; i++) {
-			double[] centralities1 = this.getCentralityDynamic(i + this.numVertices / 2);
-			double[] centralities3 = this.getCentralityRangeBased(i + this.numVertices / 2);
-			double[] centralities4 = this.getCentralityRangeBufferUpdate(i + this.numVertices / 2);
-			double[] centralities5 = this.getCentralityRangeSetBased(i + this.numVertices / 2);
-			
-			if (compareDoubleArray(centralities1, centralities3) == false) {
-				this.logger.error("Centralities1 and centralities3 are not equal.");
-				this.logger.info("-correctnessTest({})", path);
-				return false;
-			}
-			
-			if (compareDoubleArray(centralities1, centralities4) == false) {
-				this.logger.error("Centralities1 and centralities4 are not equal.");
-				this.logger.info("-correctnessTest({})", path);
-				return false;
-			}
-			
-			if (compareDoubleArray(centralities1, centralities5) == false) {
-				this.logger.error("Centralities1 and centralities5 are not equal.");
-				this.logger.info("-correctnessTest({})", path);
-				return false;
-			}
-			
-		}
-		
-		this.logger.info("Successfully passed all tests (Dynamic, Range, RangeModified).");
-		this.logger.info("-correctnessTest({})", path);
-		return true;
-		
-	}
-	
 	
 	public double[] getCentralityDynamic(int source) {
 		
@@ -910,13 +724,12 @@ public class TimeEvolvingGraphIncremental {
 					
 				}	
 			}
-//			System.out.println("Number of affected vertices: " + affectedVertices.size());
+
 			// If no affected vertices, centrality value remains the same
 			if (affectedVertices.size() == 0) {
 				centralities[t] = centralities[t - 1];
 				continue;
 			}
-			
 			
 			// Sort affected vertices by level
 			Map<Integer, List<Integer>> levelToVerticesMap = new HashMap<Integer, List<Integer>>();
@@ -939,7 +752,6 @@ public class TimeEvolvingGraphIncremental {
 			currentLevel.clear();
 			nextLevel.clear();
 			currentLevel.addAll(levelToVerticesMap.get(lvl));
-//			System.out.println("Number of affected vertices: " + levelToVerticesMap.get(lvl).size());
 			
 			while (!levels.isEmpty() || !currentLevel.isEmpty()) {
 				
@@ -1010,81 +822,8 @@ public class TimeEvolvingGraphIncremental {
 
 		}
 		
-		
 		return centralities;
 	}
-	
-	
-	public void singleSourceCentralityTest(String path, int numOfQueries) {
-	
-		this.constructGraph(path, false);
-		
-		int[] vertexIDs = new int[numOfQueries];
-		
-		// Highest 100 degrees test
-		this.logger.debug("+Highest({})", numOfQueries);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = i;
-		}
-		this.singleSourceTestHelper(path, vertexIDs);
-		this.logger.debug("-Highest({})", numOfQueries);
-
-		
-		// Lowest 100 degrees test
-		this.logger.debug("+Lowest({})", numOfQueries);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = this.numVertices - 1 - i;
-		}
-		this.singleSourceTestHelper(path, vertexIDs);
-		this.logger.debug("-Lowest({})", numOfQueries);
-
-		
-		// Random 100 degrees test
-		this.logger.debug("+Random({})", numOfQueries);
-		Random rand = new Random(0);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = rand.nextInt(this.numVertices);
-		}
-		this.singleSourceTestHelper(path, vertexIDs);
-		this.logger.debug("-Random({})", numOfQueries);
-
-	}
-
-	public void optimizationTest(String path, int numOfQueries) {
-		
-		this.constructGraph(path, false);
-		
-		int[] vertexIDs = new int[numOfQueries];
-		
-		// Highest 100 degrees test
-		this.logger.debug("+Highest({})", numOfQueries);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = i;
-		}
-		this.optimizationTestHelper(path, vertexIDs);
-		this.logger.debug("-Highest({})", numOfQueries);
-
-		
-		// Lowest 100 degrees test
-		this.logger.debug("+Lowest({})", numOfQueries);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = this.numVertices - 1 - i;
-		}
-		this.optimizationTestHelper(path, vertexIDs);
-		this.logger.debug("-Lowest({})", numOfQueries);
-
-		
-		// Random 100 degrees test
-		this.logger.debug("+Random({})", numOfQueries);
-		Random rand = new Random(0);
-		for (int i = 0; i < vertexIDs.length; i++) {
-			vertexIDs[i] = rand.nextInt(this.numVertices);
-		}
-		this.optimizationTestHelper(path, vertexIDs);
-		this.logger.debug("-Random({})", numOfQueries);
-
-	}
-
 	
 	public void printSnapshotSize(String path) {
 		
@@ -1143,45 +882,6 @@ public class TimeEvolvingGraphIncremental {
 		
 		logger.debug("-printSnapshotSize({})", path);
 		
-	}
-
-	public void simpleTest(int source) {
-		double[] centralities1 = this.getCentralityRangeBufferUpdate(source);
-		
-		double[] centralities2 = this.getCentralityDynamic(source);
-		
-		if (compareDoubleArray(centralities1, centralities2) == false) {
-			this.logger.error("Centralities1 and centralities2 are not equal.");
-		} else {
-			this.logger.info("Test passed");
-		}
-		
-	}
-	
-	
-	
-	
-	private boolean compareDouble(double d1, double d2) {
-		
-		if (Math.abs(d1 - d2) <= 0.0000001) {
-			return true;
-		}
-		
-		return false;
-		
-	}
-	
-	private boolean compareDoubleArray(double[] da1, double[] da2) {
-		if (da1.length != da2.length) {
-			return false;
-		}
-		for (int i = 0; i < da1.length; i++) {
-			if (compareDouble(da1[i], da2[i]) == false) {
-				logger.debug("Index {} not equal.", i);
-				return false;
-			}
-		}
-		return true;
 	}
 
 	
@@ -1301,200 +1001,6 @@ public class TimeEvolvingGraphIncremental {
 		SSSPTree tree = new SSSPTree(totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
-		
 	}
 	
-	
-	private long[] maxDegreeTestHelper(String path) {
-		
-		this.logger.info("+maxDegreeTest({})", path);
-
-		this.constructGraph(path, false);
-
-		// Get max degree vertex
-		int maxDegreeVertex = 0;
-		int maxDegree = this.condensedGraph.get(maxDegreeVertex).size();
-		for (int i = 0; i < this.numVertices; i++) {
-			int degree = this.condensedGraph.get(i).size();
-			if (degree > maxDegree) {
-				maxDegree = degree;
-				maxDegreeVertex = i;
-			}
-		}
-		this.logger.debug("Vertex {} has the max degree {}.", maxDegreeVertex, maxDegree);
-
-		long[] runningTimes = this.performanceTestHelper(maxDegreeVertex);
-		
-		this.logger.info("{},{}", runningTimes[0], runningTimes[1]);
-
-		this.logger.info("-maxDegreeTest({})", path);
-
-		return runningTimes;
-		
-	}
-	
-	
-	private long[] randomDegreeTestHelper(String path, int numOfRuns) {
-		
-		this.logger.info("+randomDegreeTestHelper({},{})", path, numOfRuns);
-
-		this.constructGraph(path, false);
-
-		long[] totalRunningTimes = new long[2];
-		totalRunningTimes[0] = 0;
-		totalRunningTimes[1] = 0;
-		
-		// Get random degrees
-		Random random = new Random(0);
-		for (int i = 0; i < numOfRuns; i++) {
-			int degree = random.nextInt(this.numVertices);
-			long[] runningTimes = this.performanceTestHelper(degree);
-			this.logger.info("{}:{},{}", degree, runningTimes[0], runningTimes[1]);
-			
-			totalRunningTimes[0] += runningTimes[0];
-			totalRunningTimes[1] += runningTimes[1];
-			
-		}
-				 
-		this.logger.info("Total running time {},{}", totalRunningTimes[0], totalRunningTimes[1]);
-		this.logger.info("-randomDegreeTestHelper({})", path);
-
-		return totalRunningTimes;
-		
-	}
-	
-	
-	private long[] performanceTestHelper(int sourceVertex) {
-		
-		long start = System.currentTimeMillis();
-		double[] centralities1 = this.getCentralityDynamic(sourceVertex);
-		long end = System.currentTimeMillis();
-		long time1 = end - start;
-		
-		start = System.currentTimeMillis();
-		double[] centralities2 = this.getCentralityRangeBufferUpdate(sourceVertex);
-		end = System.currentTimeMillis();
-		long time2 = end - start;
-
-		// Correctness test
-		if (compareDoubleArray(centralities1, centralities2) == false) {
-			throw new RuntimeException("Results are wrong: Number of centralities not equal.");
-		}
-		
-		long[] runningTimes = new long[2];
-		runningTimes[0] = time1;
-		runningTimes[1] = time2;
-		
-		return runningTimes;
-	}
-	
-private void singleSourceTestHelper(String path, int[] sourceIDs) {
-		
-		long start, end;
-		// Dynamic
-		start = System.currentTimeMillis();
-		for (int i = 0; i < sourceIDs.length; i++) {
-			this.getCentralityDynamic(sourceIDs[i]);
-		}
-		end = System.currentTimeMillis();
-		this.logger.info("Dynamic-based running time: {}.", (end-start)*1.0/1000);
-		
-		// Range-based
-		start = System.currentTimeMillis();
-		for (int i = 0; i < sourceIDs.length; i++) {
-			this.getCentralityRangeBased(sourceIDs[i]);
-		}
-		end = System.currentTimeMillis();
-		this.logger.info("Range-based running time: {}.", (end-start)*1.0/1000);
-		
-		// Range-based-modified
-		start = System.currentTimeMillis();
-		for (int i = 0; i < sourceIDs.length; i++) {
-			this.getCentralityRangeBufferUpdate(sourceIDs[i]);
-		}
-		end = System.currentTimeMillis();
-		this.logger.info("Range-based modified running time: {}.", (end-start)*1.0/1000);
-		
-	}
-	
-
-	private void optimizationTestHelper(String path, int[] sourceIDs) {
-		
-		long start, end;
-
-		// Range-based
-		this.logger.info("+Range-based tests.");
-		for (int i = 0; i < sourceIDs.length; i++) {
-			start = System.currentTimeMillis();
-			this.getCentralityRangeBased(sourceIDs[i]);
-			end = System.currentTimeMillis();
-			System.out.println(end-start);
-		}
-		this.logger.info("-Range-based tests.");
-
-		// Range-based-modified
-		this.logger.info("+Range-based modified tests.");
-		for (int i = 0; i < sourceIDs.length; i++) {
-			start = System.currentTimeMillis();
-			this.getCentralityRangeBufferUpdate(sourceIDs[i]);
-			end = System.currentTimeMillis();
-			System.out.println(end-start);
-		}
-		this.logger.info("-Range-based modified tests.");
-
-	}
-	
-	
-	public static void main(String[] args) {
-		
-		TimeEvolvingGraphIncremental graph = new TimeEvolvingGraphIncremental();
-//		graph.maxDegreeTest();
-//		graph.randomDegreeTest(100);
-		
-		/*
-		// wiki reverse
-		String path = "data/out.wikipedia-growth.teg.sim";
-		graph.constructGraph(path, false, true);
-		graph.realGraphTestHelper(path, 100);
-		*/
-		
-//		String path = "data/youtube-growth-sorted.txt.teg.sim";
-//		String path = "data/youtube-d-growth.txt.teg.sim";
-//		String path = "data/out.wikipedia-growth.teg.sim";
-//		String path = "data/dblp-2018-01-01.xml.teg.sim";
-		String path = "data/Scale17_Edge16.raw.uniform.2000";
-//		String path = "data/sample.txt";
-		
-//		path = "data/dblp-2018-01-01.xml.teg.sim";
-//		graph.constructGraph(path);
-//		graph.generateSourceIds(100);
-		
-//		graph.realGraphTestHelper(path, 100);
-		
-		graph.constructGraph(path);
-		long start = System.currentTimeMillis();
-		double[] centralities = graph.getCentralityRangeBufferUpdate(200);
-//		double[] centralities = graph.getCentralityDynamic(1);
-		long end = System.currentTimeMillis();
-		long time1 = end - start;
-		System.out.println("Range buffer update time: " + time1);
-		for (double centrality: centralities) {
-			System.out.println(centrality);
-		}
-		
-		
-//		graph.syntheticGraphTestHelper(100);
-		
-//		graph.realGraphTestHelper(path, 100);
-//		graph.averageNumOfLabelsTestHelper(path, 100);
-		
-		
-//		graph.singleSourceCentralityTest(path, 100);
-//		graph.optimizationTest(path, 100);
-//		graph.printSnapshotSize(path);
-//		graph.correctnessTest(path);
-		
-	}
-	
-
 }
