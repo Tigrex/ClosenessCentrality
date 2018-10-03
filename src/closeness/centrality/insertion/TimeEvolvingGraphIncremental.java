@@ -1003,4 +1003,18 @@ public class TimeEvolvingGraphIncremental {
 		return tree;
 	}
 	
+	public static void main(String[] args) {
+		
+		TimeEvolvingGraphIncremental graph = new TimeEvolvingGraphIncremental();
+		graph.constructGraph("data/Scale17_Edge16.raw.uniform.2000");
+		
+		double[] result = graph.getCentralityRangeBased_v3(10000);
+		
+		for (double centrality: result) {
+			System.out.println(centrality);
+		}
+		
+	}
+	
+	
 }
