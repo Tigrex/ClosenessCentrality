@@ -255,33 +255,13 @@ public class TimeEvolvingGraphDecremental {
 	}
 	
 	
-	public double[] getCentralitySnapshotBased(int source, boolean useCondensedGraph) {
-
-//		long start = System.currentTimeMillis();
-//		this.logger.info("+getCentralitySnapshotBased({})", source);
+	
+	public double getCentralityForSnapshot(int source, Map<Integer, Set<Integer>> graphSnapshot) {
 		
-		double[] centralities = new double[this.numSnapshots];
-//		
-//		for (int i = 0; i < this.numSnapshots; i++) {
-//			if (useCondensedGraph) {
-//				centralities[i] = this.getSnapshotCentralityWithCG(source, i);
-//			} else {
-//				centralities[i] = this.getSnapshotCentralityWithCG(source, i);
-//			}
-//			
-//		}
 		
-
-//		long end = System.currentTimeMillis();
-//		this.logger.info("Calculating centrality snapshot based time: {} seconds.", (end-start)*1.0/1000);
-//		this.logger.info("-getCentralitySnapshotBased({})", source);
 		
-		return centralities;
-		
+		return 0.0;
 	}
-	
-	
-	
 	
 	
 	public double[] getCentralityRangeBased(int source) {
@@ -395,10 +375,7 @@ public class TimeEvolvingGraphDecremental {
 	}
 	
 	
-	@SuppressWarnings("unused")
-	private SSSPTree buildSSSPTree(int source) {
-		
-		Map<Integer, Set<Integer>> initialGraph = this.deltaGraphIncremental.get(0);
+	public SSSPTree buildSSSPTree(int source, Map<Integer, Set<Integer>> initialGraph) {
 		
 		Map<Integer, Integer> nodeLevelMap = new HashMap<Integer, Integer>();
 		Map<Integer, Set<Integer>> parentsMap = new HashMap<Integer, Set<Integer>>();
@@ -492,9 +469,26 @@ public class TimeEvolvingGraphDecremental {
 		
 		numReachableVertices = nodeLevelMap.size();
 		
-		SSSPTree tree = new SSSPTree(totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
+		
+	}
+	
+	
+	public double[] getCentralityDynamic(int source) {
+		Map<Integer, Set<Integer>> initialGraph = this.deltaGraphIncremental.get(0);
+		
+		SSSPTree tree = this.buildSSSPTree(source, initialGraph);
+		System.out.println(tree.getCentrality(this.numVertices));
+		
+		
+		
+		
+		
+		double[] centralities = new double[this.numSnapshots];
+		Arrays.fill(centralities, 0);
+		return centralities;
 		
 	}
 	
@@ -516,6 +510,8 @@ public class TimeEvolvingGraphDecremental {
 		for (double d: centralities1) {
 			System.out.println(d);
 		}
+		
+		graph.getCentralityDynamic(0);
 		
 		
 	}

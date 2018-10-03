@@ -883,28 +883,36 @@ public class TimeEvolvingGraphIncremental {
 		logger.debug("-printSnapshotSize({})", path);
 		
 	}
+	
+	
+	public double[] getCentralityDynamicIncremental(int source) {
+		double[] centralities = new double[this.numSnapshots];
+		Arrays.fill(centralities, 0);
+		
+		SSSPTree tree = this.buildSSSPTree(source, this.deltaGraph.get(0));
+		centralities[0] = tree.getCentrality(this.numVertices);
+		
+		for (int i = 1; i < this.numSnapshots; i++) {
+			Map<Integer, Set<Integer>> edges = this.deltaGraph.get(i);
+			
+			for (int s: edges.keySet()) {
+				Set<Integer> ts = edges.get(s);
+				for (int t: ts) {
+					tree.insertDirectedEdge(s, t);
+				}
+				
+			}
+			
+			centralities[i] = tree.getCentrality(this.numVertices);
+			
+		}
+		
+		return centralities;
+	}
 
 	
-	private void mergeDelta(Map<Integer, Set<Integer>> initial, Map<Integer, Set<Integer>> delta) {
-		for (int from: delta.keySet()) {
-			for (int to:delta.get(from)) {
-				
-				if (initial.containsKey(from)) {
-					initial.get(from).add(to);
-				} else {
-					Set<Integer> vertices = new HashSet<Integer>();
-					vertices.addAll(delta.get(from));
-					initial.put(from, vertices);
-				}
-			}
-		}
-	}
 	
-	
-	@SuppressWarnings("unused")
-	private SSSPTree buildSSSPTree(int source) {
-		
-		Map<Integer, Set<Integer>> initialGraph = this.deltaGraph.get(0);
+	public SSSPTree buildSSSPTree(int source, Map<Integer, Set<Integer>> initialGraph) {
 		
 		Map<Integer, Integer> nodeLevelMap = new HashMap<Integer, Integer>();
 		Map<Integer, Set<Integer>> parentsMap = new HashMap<Integer, Set<Integer>>();
@@ -998,17 +1006,37 @@ public class TimeEvolvingGraphIncremental {
 		
 		numReachableVertices = nodeLevelMap.size();
 		
-		SSSPTree tree = new SSSPTree(totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
+		
 	}
+	
+	
+	private void mergeDelta(Map<Integer, Set<Integer>> initial, Map<Integer, Set<Integer>> delta) {
+		for (int from: delta.keySet()) {
+			for (int to:delta.get(from)) {
+				
+				if (initial.containsKey(from)) {
+					initial.get(from).add(to);
+				} else {
+					Set<Integer> vertices = new HashSet<Integer>();
+					vertices.addAll(delta.get(from));
+					initial.put(from, vertices);
+				}
+			}
+		}
+	}
+	
+	
 	
 	public static void main(String[] args) {
 		
 		TimeEvolvingGraphIncremental graph = new TimeEvolvingGraphIncremental();
 		graph.constructGraph("data/Scale17_Edge16.raw.uniform.2000");
 		
-		double[] result = graph.getCentralityRangeBased_v3(10000);
+		double[] result = graph.getCentralityRangeBased_v3(0);
+//		double[] result = graph.getCentralityDynamicIncremental(0);
 		
 		for (double centrality: result) {
 			System.out.println(centrality);
