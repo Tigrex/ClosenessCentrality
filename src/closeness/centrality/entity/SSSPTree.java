@@ -67,12 +67,11 @@ public class SSSPTree {
 		this.graph.get(from).remove(to);
 		this.reverseGraph.get(to).remove(from);
 		
-		if (!this.childrenMap.containsKey(from)) {
+		if (!this.nodeLevelMap.containsKey(from)) {
 			return;
 		}
 		
-		Set<Integer> children = this.childrenMap.get(from);
-		if (!children.contains(to)) {
+		if (!this.parentsMap.containsKey(to)) {
 			return;
 		}
 		
@@ -376,10 +375,10 @@ public class SSSPTree {
 	
 	
 	public double getCentrality(int totalNumOfVertices) {
-		System.out.println("---");
-		System.out.println("distance:" + totalDistance);
-		System.out.println("rechables:" + this.nodeLevelMap.size());
-		System.out.println("---");
+//		System.out.println("---");
+//		System.out.println("distance:" + totalDistance);
+//		System.out.println("rechables:" + this.nodeLevelMap.size());
+//		System.out.println("---");
 		
 		this.totalReachableVertices = this.nodeLevelMap.size();
 		

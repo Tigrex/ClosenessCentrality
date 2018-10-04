@@ -595,15 +595,15 @@ public class TimeEvolvingGraphDecremental {
 //			System.out.println(d);
 //		}
 //		
-//		double[] centralities2 = graph.getCentralityDynamicIncremental(10);
-//		for (double d: centralities2) {
-//			System.out.println(d);
-//		}
-		
-		double[] centralities3 = graph.getCentralitySnapshotBased(10);
-		for (double d: centralities3) {
+		double[] centralities2 = graph.getCentralityDynamicIncremental(10);
+		for (double d: centralities2) {
 			System.out.println(d);
 		}
+		
+//		double[] centralities3 = graph.getCentralitySnapshotBased(10);
+//		for (double d: centralities3) {
+//			System.out.println(d);
+//		}
 		
 	}
 	
