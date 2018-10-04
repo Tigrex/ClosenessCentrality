@@ -584,7 +584,7 @@ public class TimeEvolvingGraphDecremental {
 //		String path = "data/youtube-d-growth.txt.teg.sim";
 //		String path = "data/out.wikipedia-growth.teg.sim";
 //		String path = "data/dblp-2018-01-01.xml.teg.sim";
-		String path = "data/Scale17_Edge16.raw.uniform.2000.0.1";
+		String path = "data/Scale21_Edge16.raw.uniform.100.0.05";
 //		String path = "data/sample.txt";
 		
 		

@@ -328,7 +328,7 @@ public class TEGDecrementalTest {
 		
 //		test.realGraphTestHelper(path, 100);
 		
-		test.syntheticGraphTestHelper(100, "0.05");
+		test.syntheticGraphTestHelper(100, ".0.05");
 		
 	}
 	
