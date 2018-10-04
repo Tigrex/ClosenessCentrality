@@ -29,13 +29,6 @@ public class SSSPTree {
 	public SSSPTree(Map<Integer, Set<Integer>> graph, int totalDistance, int source, Map<Integer, Integer> nodeLevelMap, Map<Integer, Set<Integer>> parentsMap, Map<Integer, Set<Integer>> childrenMap) {
 		this.graph = graph;
 		
-		if (graph.get(0).contains(1036897)) {
-			System.out.println("exist!!!!");
-		} else {
-			System.out.println("Not exist!!!!");
-		}
-		
-		
 		this.buildReverseGraph();
 		this.totalDistance = totalDistance;
 		this.totalReachableVertices = nodeLevelMap.size();
@@ -65,12 +58,6 @@ public class SSSPTree {
 			
 		}
 		
-		if (reverseGraph.get(1036897).contains(0)) {
-			System.out.println("!!!!exist");
-		} else {
-			System.out.println("!!!!Not exist");
-		}
-		
 	}
 	
 	public void deleteDirectedEdge(int from, int to) {
@@ -79,9 +66,6 @@ public class SSSPTree {
 			throw new RuntimeException("Edge " + from + "-" + to + " does not exist.");
 		}
 		this.graph.get(from).remove(to);
-		if (this.reverseGraph.get(to) == null) {
-			System.out.println(from + " " + to + " does not exist.");
-		}
 		this.reverseGraph.get(to).remove(from);
 		
 		if (!this.nodeLevelMap.containsKey(from)) {
@@ -392,10 +376,6 @@ public class SSSPTree {
 	
 	
 	public double getCentrality(int totalNumOfVertices) {
-//		System.out.println("---");
-//		System.out.println("distance:" + totalDistance);
-//		System.out.println("rechables:" + this.nodeLevelMap.size());
-//		System.out.println("---");
 		
 		this.totalReachableVertices = this.nodeLevelMap.size();
 		

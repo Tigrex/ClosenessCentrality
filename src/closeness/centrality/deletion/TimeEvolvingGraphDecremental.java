@@ -206,10 +206,6 @@ public class TimeEvolvingGraphDecremental {
 			logger.debug("Number of snapshots for edge insertions: {}.", ts1);
 			logger.debug("Number of snapshots for edge deletions: {}.", ts2);
 			
-//			if (ts1 != numSnapshots || ts2 != numSnapshots) {
-//				System.exit(1);
-//			}
-			
 			// Build array-based snapshot graph
 			this.deltaGraphIncremental = new ArrayList<Map<Integer, Set<Integer>>>(numSnapshots);
 			this.deltaGraphDecremental = new ArrayList<Map<Integer, Set<Integer>>>(numSnapshots);
@@ -454,10 +450,6 @@ public class TimeEvolvingGraphDecremental {
 		
 		
 		for (int i = 0; i < this.numSnapshots; i++) {
-//			System.out.println("----");
-//			System.out.println("Distance: " + totalDistances[i]);
-//			System.out.println("reachables: " + sccSize[i]);
-//			System.out.println("----");
 
 			if (totalDistances[i] == 0) {
 				centralities[i] = 0;
@@ -474,6 +466,21 @@ public class TimeEvolvingGraphDecremental {
 		
 		return centralities;
 				
+	}
+	
+	public Map<Integer, Set<Integer>> cloneGraph(Map<Integer, Set<Integer>> graph) {
+		Map<Integer, Set<Integer>> clone = new HashMap<Integer, Set<Integer>>();
+		
+		for (int source: graph.keySet()) {
+			Set<Integer> targets = graph.get(source);
+			
+			Set<Integer> clonedSet = new HashSet<Integer>();
+			clonedSet.addAll(targets);
+			clone.put(source, clonedSet);
+		}
+		
+		return clone;
+		
 	}
 	
 	
@@ -568,7 +575,7 @@ public class TimeEvolvingGraphDecremental {
 			
 		}
 		
-		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(this.cloneGraph(initialGraph), totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
 		
