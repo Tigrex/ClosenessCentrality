@@ -919,7 +919,6 @@ public class TimeEvolvingGraphIncremental {
 		Map<Integer, Set<Integer>> childrenMap = new HashMap<Integer, Set<Integer>>();
 		
 		int totalDistances = 0;		
-		int numReachableVertices = 0;
 		
 		int level = 0;
 		
@@ -1004,9 +1003,7 @@ public class TimeEvolvingGraphIncremental {
 			
 		}
 		
-		numReachableVertices = nodeLevelMap.size();
-		
-		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
 		
@@ -1035,12 +1032,19 @@ public class TimeEvolvingGraphIncremental {
 		TimeEvolvingGraphIncremental graph = new TimeEvolvingGraphIncremental();
 		graph.constructGraph("data/Scale17_Edge16.raw.uniform.2000");
 		
-		double[] result = graph.getCentralityRangeBased_v3(0);
-//		double[] result = graph.getCentralityDynamicIncremental(0);
+		double[] result1 = graph.getCentralityRangeBased_v3(100);
+		double[] result2 = graph.getCentralityDynamicIncremental(100);
 		
-		for (double centrality: result) {
-			System.out.println(centrality);
+		for (int i = 0; i < result1.length; i++) {
+			double r1 = result1[i];
+			double r2 = result2[i];
+			
+			if (Math.abs(r1 - r2) > 0.000001) {
+				System.out.println("Error!!");
+			}
 		}
+		
+		System.out.println("Passed");
 		
 	}
 	

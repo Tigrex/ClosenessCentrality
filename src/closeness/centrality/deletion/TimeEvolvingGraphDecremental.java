@@ -195,6 +195,14 @@ public class TimeEvolvingGraphDecremental {
 
 			int ts1 = snapshotsIncremental.size();
 			int ts2 = snapshotsDecremental.size();
+			
+			Set<Integer> keys = snapshotsDecremental.keySet();
+			List<Integer> keyList = new ArrayList<Integer>(keys);
+			Collections.sort(keyList);
+			System.out.println("Min key for snapshotDecremental: " + keyList.get(0));
+			System.out.println("Max key for snapshotDecremental: " + keyList.get(keyList.size() - 1));
+
+			
 			logger.debug("Number of snapshots for edge insertions: {}.", ts1);
 			logger.debug("Number of snapshots for edge deletions: {}.", ts2);
 			
@@ -206,7 +214,7 @@ public class TimeEvolvingGraphDecremental {
 			this.deltaGraphIncremental = new ArrayList<Map<Integer, Set<Integer>>>(numSnapshots);
 			this.deltaGraphDecremental = new ArrayList<Map<Integer, Set<Integer>>>(numSnapshots);
 			
-			for (int i = 0; i < numSnapshots; i++) {
+			for (int i = 0; i < numSnapshots - 1; i++) {
 				Map<Integer, Set<Integer>> deltaIncremental = snapshotsIncremental.get(i);
 				if (deltaIncremental != null) {
 					this.deltaGraphIncremental.add(deltaIncremental);
@@ -215,11 +223,11 @@ public class TimeEvolvingGraphDecremental {
 					this.deltaGraphIncremental.add(new HashMap<Integer, Set<Integer>>());
 				}
 				
-				Map<Integer, Set<Integer>> deltaDecremental = snapshotsDecremental.get(i);
+				Map<Integer, Set<Integer>> deltaDecremental = snapshotsDecremental.get(i + 1);
 				if (deltaDecremental != null) {
 					this.deltaGraphDecremental.add(deltaDecremental);
 				} else {
-					logger.error("No edge deletions at time {}.", i);
+					logger.error("No edge deletions at time {}.", i + 1);
 					this.deltaGraphDecremental.add(new HashMap<Integer, Set<Integer>>());
 				}
 				
@@ -255,12 +263,101 @@ public class TimeEvolvingGraphDecremental {
 	}
 	
 	
+	public double[] getCentralitySnapshotBased(int source) {
+		
+		double[] centralities = new double[this.numSnapshots];
+		Arrays.fill(centralities, 0);
+		
+		Map<Integer, Set<Integer>> graph = this.deltaGraphIncremental.get(0);
+		
+		SSSPTree tree = this.buildSSSPTree(source, graph);
+		centralities[0] = tree.getCentrality(this.numVertices);
+		
+		
+		for (int i = 1; i < this.numSnapshots; i++) {
+			
+			if (i < this.numSnapshots - 1) {
+				Map<Integer, Set<Integer>> insertedEdges = this.deltaGraphIncremental.get(i);
+				
+				for (int s: insertedEdges.keySet()) {
+					Set<Integer> ts = insertedEdges.get(s);
+					for (int t: ts) {
+						
+						if (graph.containsKey(s)) {
+							graph.get(s).add(t);
+						} else {
+							Set<Integer> setI = new HashSet<Integer>();
+							setI.add(t);
+							graph.put(s, setI);
+						}
+					}
+					
+				}
+			}
+			
+			if (i >= 2) {
+				Map<Integer, Set<Integer>> deletedEdges = this.deltaGraphDecremental.get(i - 2);
+				
+				for (int s: deletedEdges.keySet()) {
+					Set<Integer> ts = deletedEdges.get(s);
+					for (int t: ts) {
+						if (graph.containsKey(s)) {
+							graph.get(s).remove(t);
+						}
+					}
+				}
+			}
+
+			tree = this.buildSSSPTree(source, graph);
+			centralities[i] = tree.getCentrality(this.numVertices);
+			
+		}
+		
+		return centralities;
+		
+	}
 	
-	public double getCentralityForSnapshot(int source, Map<Integer, Set<Integer>> graphSnapshot) {
+	
+	public double[] getCentralityDynamicIncremental(int source) {
+		double[] centralities = new double[this.numSnapshots];
+		Arrays.fill(centralities, 0);
 		
 		
+		SSSPTree tree = this.buildSSSPTree(source, this.deltaGraphIncremental.get(0));
+		centralities[0] = tree.getCentrality(this.numVertices);
 		
-		return 0.0;
+		for (int i = 1; i < this.numSnapshots; i++) {
+			
+			if (i < this.numSnapshots - 1) {
+				Map<Integer, Set<Integer>> insertedEdges = this.deltaGraphIncremental.get(i);
+				
+				for (int s: insertedEdges.keySet()) {
+					Set<Integer> ts = insertedEdges.get(s);
+					for (int t: ts) {
+						
+						tree.insertDirectedEdge(s, t);
+					}
+					
+				}
+			}
+			
+			if (i >= 2) {
+				Map<Integer, Set<Integer>> deletedEdges = this.deltaGraphDecremental.get(i - 2);
+				
+				for (int s: deletedEdges.keySet()) {
+					Set<Integer> ts = deletedEdges.get(s);
+					for (int t: ts) {
+						
+						tree.deleteDirectedEdge(s, t);
+					}
+				}
+			}
+			
+			centralities[i] = tree.getCentrality(this.numVertices);
+			
+		}
+		
+		return centralities;
 	}
 	
 	
@@ -357,6 +454,11 @@ public class TimeEvolvingGraphDecremental {
 		
 		
 		for (int i = 0; i < this.numSnapshots; i++) {
+//			System.out.println("----");
+//			System.out.println("Distance: " + totalDistances[i]);
+//			System.out.println("reachables: " + sccSize[i]);
+//			System.out.println("----");
+
 			if (totalDistances[i] == 0) {
 				centralities[i] = 0;
 			} else {
@@ -382,7 +484,6 @@ public class TimeEvolvingGraphDecremental {
 		Map<Integer, Set<Integer>> childrenMap = new HashMap<Integer, Set<Integer>>();
 		
 		int totalDistances = 0;		
-		int numReachableVertices = 0;
 		
 		int level = 0;
 		
@@ -467,30 +568,12 @@ public class TimeEvolvingGraphDecremental {
 			
 		}
 		
-		numReachableVertices = nodeLevelMap.size();
-		
-		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, numReachableVertices, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
 		
 	}
 	
-	
-	public double[] getCentralityDynamic(int source) {
-		Map<Integer, Set<Integer>> initialGraph = this.deltaGraphIncremental.get(0);
-		
-		SSSPTree tree = this.buildSSSPTree(source, initialGraph);
-		System.out.println(tree.getCentrality(this.numVertices));
-		
-		
-		
-		
-		
-		double[] centralities = new double[this.numSnapshots];
-		Arrays.fill(centralities, 0);
-		return centralities;
-		
-	}
 	
 	
 	public static void main(String[] args) {
@@ -504,15 +587,23 @@ public class TimeEvolvingGraphDecremental {
 		String path = "data/Scale17_Edge16.raw.uniform.2000.0.1";
 //		String path = "data/sample.txt";
 		
+		
 //		path = "data/dblp-2018-01-01.xml.teg.sim";
 		graph.constructGraph(path);
-		double[] centralities1 = graph.getCentralityRangeBased(0);
-		for (double d: centralities1) {
+//		double[] centralities1 = graph.getCentralityRangeBased(10);
+//		for (double d: centralities1) {
+//			System.out.println(d);
+//		}
+//		
+//		double[] centralities2 = graph.getCentralityDynamicIncremental(10);
+//		for (double d: centralities2) {
+//			System.out.println(d);
+//		}
+		
+		double[] centralities3 = graph.getCentralitySnapshotBased(10);
+		for (double d: centralities3) {
 			System.out.println(d);
 		}
-		
-		graph.getCentralityDynamic(0);
-		
 		
 	}
 	

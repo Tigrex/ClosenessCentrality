@@ -19,6 +19,10 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import closeness.centrality.entity.EdgeWithTimeInterval;
+import closeness.centrality.entity.Label;
+import closeness.centrality.entity.TimeInterval;
+
 public class TimeEvolvingGraphDeletion {
 	
 	private int numVertices;
@@ -234,12 +238,9 @@ public class TimeEvolvingGraphDeletion {
 					if (newInterval != null) {
 						
 						List<Label> oldLabels = labels.get(neighbor);
-						List<Label> newLabels = Label.insertLabel(oldLabels, new Label(neighbor, level + 1, newInterval));
+						boolean changed = Label.mergeLabel(oldLabels, new Label(neighbor, level + 1, newInterval));
 						
-						if (Label.equalityCheck(oldLabels, newLabels) != true) {
-							labels.get(neighbor).clear();
-							labels.get(neighbor).addAll(newLabels);
-							
+						if (changed) {
 							next.add(new Label(neighbor, level + 1, newInterval));
 						}
 						
