@@ -95,19 +95,19 @@ public class TEGDecrementalTest {
 	}
 	
 	
-	public void syntheticGraphTestHelper(int numOfRuns, String deletion) {
+	public void syntheticGraphTestHelper(int numOfRuns, String deletionSuffix) {
 		
 		int scale = 21;
-		String[] timestamps = {"100", "200", "500", "1000", "2000", "4000", "8000"};
+		String[] timestamps = {"500", "1000", "4000", "8000"};
 		
 		for (String timestamp: timestamps) {
-			String path = "data/Scale" + scale + "_Edge16.raw.uniform." + timestamp + deletion;	
+			String path = "data/Scale" + scale + "_Edge16.raw.uniform." + timestamp + "." + deletionSuffix;	
 			this.loadTEG(path);
 			singleGraphTestHelper(numOfRuns);
 		}
 		
 		for (scale = 17; scale <= 21; scale++) {
-			String path = "data/Scale" + scale + "_Edge16.raw.uniform.2000" + deletion;	
+			String path = "data/Scale" + scale + "_Edge16.raw.uniform.2000" + "." + deletionSuffix;	
 			this.loadTEG(path);
 			singleGraphTestHelper(numOfRuns);
 		}
@@ -324,10 +324,14 @@ public class TEGDecrementalTest {
 		
 //		test.realGraphTestHelper(path, 100);
 		
-		test.loadTEG("data/Scale17_Edge16.raw.uniform.2000.0.05");
-		test.singleGraphTestHelper(10);
+//		test.loadTEG("data/Scale17_Edge16.raw.uniform.2000.0.05");
+//		test.singleGraphTestHelper(10);
 		
-//		test.syntheticGraphTestHelper(100, ".0.05");
+		
+		String[] deletionSuffixs = {"0.05", "0.1", "0.15"};
+		for (String suffix: deletionSuffixs) {
+			test.syntheticGraphTestHelper(100, suffix);
+		}
 		
 	}
 	

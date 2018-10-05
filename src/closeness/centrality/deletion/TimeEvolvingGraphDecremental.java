@@ -195,12 +195,12 @@ public class TimeEvolvingGraphDecremental {
 			Set<Integer> keys = snapshotsDecremental.keySet();
 			List<Integer> keyList = new ArrayList<Integer>(keys);
 			Collections.sort(keyList);
-			System.out.println("Min key for snapshotDecremental: " + keyList.get(0));
-			System.out.println("Max key for snapshotDecremental: " + keyList.get(keyList.size() - 1));
+//			System.out.println("Min key for snapshotDecremental: " + keyList.get(0));
+//			System.out.println("Max key for snapshotDecremental: " + keyList.get(keyList.size() - 1));
 
 			
-			logger.debug("Number of snapshots for edge insertions: {}.", ts1);
-			logger.debug("Number of snapshots for edge deletions: {}.", ts2);
+//			logger.debug("Number of snapshots for edge insertions: {}.", ts1);
+//			logger.debug("Number of snapshots for edge deletions: {}.", ts2);
 			
 			// Build array-based snapshot graph
 			this.deltaGraphIncremental = new ArrayList<Map<Integer, Set<Integer>>>(numSnapshots);
