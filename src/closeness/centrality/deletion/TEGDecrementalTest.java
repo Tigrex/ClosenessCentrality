@@ -136,7 +136,7 @@ public class TEGDecrementalTest {
 		}
 				 
 		this.logger.info("Total running time {},{}", totalRunningTimes[0], totalRunningTimes[1]);
-		this.logger.info("-singleGraphTestHelper({})");
+		this.logger.info("-singleGraphTestHelper({})", numOfRuns);
 		
 	}
 
