@@ -103,21 +103,21 @@ public class TEGDecrementalTest {
 		for (String timestamp: timestamps) {
 			String path = "data/Scale" + scale + "_Edge16.raw.uniform." + timestamp + deletion;	
 			this.loadTEG(path);
-			singleGraphTestHelper(path, numOfRuns);
+			singleGraphTestHelper(numOfRuns);
 		}
 		
 		for (scale = 17; scale <= 21; scale++) {
 			String path = "data/Scale" + scale + "_Edge16.raw.uniform.2000" + deletion;	
 			this.loadTEG(path);
-			singleGraphTestHelper(path, numOfRuns);
+			singleGraphTestHelper(numOfRuns);
 		}
 		
 	}
 	
 	
-	public void singleGraphTestHelper(String path, int numOfRuns) {
+	public void singleGraphTestHelper(int numOfRuns) {
 		
-		this.logger.info("+singleGraphTestHelper({},{})", path, numOfRuns);
+		this.logger.info("+singleGraphTestHelper({})", numOfRuns);
 
 		long[] totalRunningTimes = new long[2];
 		totalRunningTimes[0] = 0;
@@ -136,7 +136,7 @@ public class TEGDecrementalTest {
 		}
 				 
 		this.logger.info("Total running time {},{}", totalRunningTimes[0], totalRunningTimes[1]);
-		this.logger.info("-singleGraphTestHelper({})", path);
+		this.logger.info("-singleGraphTestHelper({})");
 		
 	}
 
@@ -324,7 +324,10 @@ public class TEGDecrementalTest {
 		
 //		test.realGraphTestHelper(path, 100);
 		
-		test.syntheticGraphTestHelper(100, ".0.05");
+		test.loadTEG("data/Scale17_Edge16.raw.uniform.2000.0.05");
+		test.singleGraphTestHelper(10);
+		
+//		test.syntheticGraphTestHelper(100, ".0.05");
 		
 	}
 	

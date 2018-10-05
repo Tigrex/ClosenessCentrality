@@ -354,9 +354,6 @@ public class TimeEvolvingGraphDecremental {
 	
 	public double[] getCentralityRangeBased(int source) {
 		
-		long start = System.currentTimeMillis();
-		this.logger.info("+getCentralityRangeBased({})", source);
-		
 		int[] sccSize = new int[this.numSnapshots]; // Calculate scc size
 		
 		// Values default to be 0
@@ -454,11 +451,6 @@ public class TimeEvolvingGraphDecremental {
 			
 		}
 
-		
-		long end = System.currentTimeMillis();
-		this.logger.info("Calculating centrality range based time: {} seconds.", (end-start)*1.0/1000);
-		this.logger.info("-getCentralityRangeBased({})", source);
-		
 		return centralities;
 				
 	}
