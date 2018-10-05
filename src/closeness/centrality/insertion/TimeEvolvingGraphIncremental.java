@@ -918,8 +918,6 @@ public class TimeEvolvingGraphIncremental {
 		Map<Integer, Set<Integer>> parentsMap = new HashMap<Integer, Set<Integer>>();
 		Map<Integer, Set<Integer>> childrenMap = new HashMap<Integer, Set<Integer>>();
 		
-		int totalDistances = 0;		
-		
 		int level = 0;
 		
 		Set<Integer> currentLevel = new HashSet<Integer>();
@@ -930,9 +928,6 @@ public class TimeEvolvingGraphIncremental {
 		
 		while (currentLevel.size() > 0) {
 			
-			// Update distance
-			totalDistances += level * currentLevel.size();
-
 			// Add next level
 			for (int vertex: currentLevel) {
 						
@@ -1003,7 +998,7 @@ public class TimeEvolvingGraphIncremental {
 			
 		}
 		
-		SSSPTree tree = new SSSPTree(initialGraph, totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(initialGraph, source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
 		

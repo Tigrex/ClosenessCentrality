@@ -37,16 +37,11 @@ public class TEGDecrementalTest {
 		this.teg.constructGraph(path);
 	}
 	
-	public void loadTEG(String path, boolean reverseEdges) {
-		this.teg.constructGraph(path, reverseEdges);
-	}
-
-	
 	public boolean correctnessTest(String path) {
 
 		this.logger.info("+correctnessTest({})", path);
 		
-		this.loadTEG(path, false);
+		this.loadTEG(path);
 		
 		for (int i = 0; i < 10; i++) {
 			double[] centralities1 = this.teg.getCentralityDynamicIncremental(i + this.getNumVertices() / 2);
@@ -235,7 +230,7 @@ public class TEGDecrementalTest {
 		
 		this.logger.info("+maxDegreeTest({})", path);
 
-		this.loadTEG(path, false);
+		this.loadTEG(path);
 
 		// Get max degree vertex
 		int maxDegreeVertex = 0;
@@ -255,7 +250,7 @@ public class TEGDecrementalTest {
 		
 		this.logger.info("+randomDegreeTestHelper({},{})", path, numOfRuns);
 
-		this.loadTEG(path, false);
+		this.loadTEG(path);
 		
 		List<Integer> sourceIds = new ArrayList<Integer>(numOfRuns);
 		
@@ -302,7 +297,8 @@ public class TEGDecrementalTest {
 
 		// Correctness test
 		if (compareDoubleArray(centralities1, centralities2) == false) {
-			System.out.println("Results are wrong: Number of centralities not equal.");
+			this.logger.error("Results are wrong: Number of centralities not equal.");
+			System.exit(1);
 		}
 		
 		long[] runningTimes = new long[2];

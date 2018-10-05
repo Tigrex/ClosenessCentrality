@@ -9,8 +9,6 @@ import java.util.Set;
 
 public class SSSPTree {
 	
-	public int totalDistance;
-	
 	public int totalReachableVertices;
 	
 	public Map<Integer, Integer> nodeLevelMap;
@@ -26,11 +24,10 @@ public class SSSPTree {
 	public Map<Integer, Set<Integer>> reverseGraph;
 	
 	
-	public SSSPTree(Map<Integer, Set<Integer>> graph, int totalDistance, int source, Map<Integer, Integer> nodeLevelMap, Map<Integer, Set<Integer>> parentsMap, Map<Integer, Set<Integer>> childrenMap) {
+	public SSSPTree(Map<Integer, Set<Integer>> graph, int source, Map<Integer, Integer> nodeLevelMap, Map<Integer, Set<Integer>> parentsMap, Map<Integer, Set<Integer>> childrenMap) {
 		this.graph = graph;
 		
 		this.buildReverseGraph();
-		this.totalDistance = totalDistance;
 		this.totalReachableVertices = nodeLevelMap.size();
 		this.source = source;
 		
@@ -62,9 +59,6 @@ public class SSSPTree {
 	
 	public void deleteDirectedEdge(int from, int to) {
 		// Update graph first
-		if (!this.graph.containsKey(from)) {
-			throw new RuntimeException("Edge " + from + "-" + to + " does not exist.");
-		}
 		this.graph.get(from).remove(to);
 		this.reverseGraph.get(to).remove(from);
 		
@@ -72,7 +66,11 @@ public class SSSPTree {
 			return;
 		}
 		
-		if (!this.parentsMap.containsKey(to)) {
+		if (!this.nodeLevelMap.containsKey(to)) {
+			return;
+		}
+		
+		if (this.nodeLevelMap.get(from) - this.nodeLevelMap.get(to) != -1) {
 			return;
 		}
 		
@@ -84,16 +82,21 @@ public class SSSPTree {
 		}
 		
 		Set<Integer> affectedVertices = new HashSet<Integer>();
-		List<Integer> currentLevel = new ArrayList<Integer>();
-		List<Integer> nextLevel = new ArrayList<Integer>();
+		Set<Integer> currentLevel = new HashSet<Integer>();
+		Set<Integer> nextLevel = new HashSet<Integer>();
 		if (this.parentsMap.get(to).size() == 1 && this.parentsMap.get(to).contains(from)) {
 			// the only shortest path link
-			this.parentsMap.get(to).remove(from);
 			this.childrenMap.get(from).remove(to);
+			this.parentsMap.get(to).remove(from);
 			currentLevel.add(to);
+			
+//			if (this.childrenMap.containsKey(to)) {
+//				for (int v: this.childrenMap.get(to)) {
+//					this.parentsMap.get(v).remove(to);
+//				}
+//				this.childrenMap.remove(to);
+//			}
 
-			this.totalDistance -= this.nodeLevelMap.get(to);
-			this.nodeLevelMap.remove(to);
 		}
 		
 		while (currentLevel.size() > 0) {
@@ -101,29 +104,23 @@ public class SSSPTree {
 			
 			for (int v: currentLevel) {
 				
+				this.nodeLevelMap.remove(v);
+				
 				if (!this.childrenMap.containsKey(v)) {
 					continue;
 				}
-				
-				List<Integer> toBeRemoved = new ArrayList<Integer>();
 				
 				Set<Integer> childs = this.childrenMap.get(v);
 				for (Integer child: childs) {
 					if (this.parentsMap.get(child).size() == 1) {
 						nextLevel.add(child);
-						toBeRemoved.add(child);
-						
-						this.totalDistance -= this.nodeLevelMap.get(child);
-						this.nodeLevelMap.remove(child);
 					}
+					
+					this.parentsMap.get(child).remove(v);
+					
 				}
 				
-				for (Integer i: toBeRemoved) {
-					this.parentsMap.get(i).remove(v);
-					this.childrenMap.get(v).remove(i);
-				}
-				
-				
+				this.childrenMap.remove(v);
 				
 			}
 			
@@ -135,6 +132,7 @@ public class SSSPTree {
 		if (affectedVertices.size() > 0) {
 
 			PriorityQueue<PQItem> pq = new PriorityQueue<PQItem>();
+			
 			for (int v: affectedVertices) {
 				
 				int distance = Integer.MAX_VALUE;
@@ -175,23 +173,24 @@ public class SSSPTree {
 				if (distance == Integer.MAX_VALUE) {
 					break;
 				}
+				
+				
 				if (!this.nodeLevelMap.containsKey(v)) {
+					
 					this.nodeLevelMap.put(v, distance);
 					
 					for (int parent: parents) {
 						this.updateParentChildrenMap(parent, v);
 					}
 					
-					this.totalDistance += distance;
 					
 				} else if (distance == this.nodeLevelMap.get(v)) {
+					
 					for (int parent: parents) {
 						this.updateParentChildrenMap(parent, v);
 					}
-				} else if (distance < this.nodeLevelMap.get(v)){
 					
-					this.totalDistance -= this.nodeLevelMap.get(v);
-					this.totalDistance += distance;
+				} else if (distance < this.nodeLevelMap.get(v)){
 
 					this.nodeLevelMap.put(v, distance);
 					
@@ -272,15 +271,11 @@ public class SSSPTree {
 				return;
 			}
 			
-			this.totalDistance -= levelTo;
-			this.totalDistance += levelFrom + 1;
 			this.nodeLevelMap.put(to, levelFrom + 1);
 			
 			// Break existing parents and move to new parent
-			if (this.parentsMap.containsKey(to)) {
-				for (int p: this.parentsMap.get(to)) {
-					this.childrenMap.get(p).remove(to);
-				}
+			for (int p: this.parentsMap.get(to)) {
+				this.childrenMap.get(p).remove(to);
 			}
 			this.parentsMap.get(to).clear();
 			
@@ -288,7 +283,6 @@ public class SSSPTree {
 			
 		} else {
 			this.nodeLevelMap.put(to, levelFrom + 1);
-			this.totalDistance += levelFrom + 1;
 			
 			this.updateParentChildrenMap(from, to);
 
@@ -313,7 +307,6 @@ public class SSSPTree {
 					if (!this.nodeLevelMap.containsKey(child)) {
 						// New connected vertex
 						this.nodeLevelMap.put(child, level);
-						this.totalDistance += level;
 
 						this.updateParentChildrenMap(vertex, child);
 						nextLevel.add(child);
@@ -322,21 +315,19 @@ public class SSSPTree {
 					
 					if (this.nodeLevelMap.get(child) > level) {
 						// Shorter distance
-						this.totalDistance -= this.nodeLevelMap.get(child);
-						this.totalDistance += level;
-
 						this.nodeLevelMap.put(child, level);
 						
-						if (this.parentsMap.containsKey(child)) {
-							for (int p: this.parentsMap.get(child)) {
-								this.childrenMap.get(p).remove(child);
-							}
+						for (int p: this.parentsMap.get(child)) {
+							this.childrenMap.get(p).remove(child);
 						}
 						this.parentsMap.get(child).clear();
 						
 						
 						this.updateParentChildrenMap(vertex, child);
 						nextLevel.add(child);
+						
+					} else if (this.nodeLevelMap.get(child) == level) {
+						this.updateParentChildrenMap(vertex, child);
 					}
 					
 				}
@@ -378,6 +369,10 @@ public class SSSPTree {
 	public double getCentrality(int totalNumOfVertices) {
 		
 		this.totalReachableVertices = this.nodeLevelMap.size();
+		int totalDistance = 0;
+		for (int v: this.nodeLevelMap.keySet()) {
+			totalDistance += this.nodeLevelMap.get(v);
+		}
 		
 		if (totalDistance == 0) {
 			return 0.0;

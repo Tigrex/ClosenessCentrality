@@ -39,12 +39,8 @@ public class TimeEvolvingGraphDecremental {
 	}
 	
 	public void constructGraph(String path) {
-		this.constructGraph(path, false);
-	}
-	
-	public void constructGraph(String path, boolean buildSnapshotGraph) {
 
-		logger.debug("+constructGraph({}, buildSnapshotGraph = {})", path, buildSnapshotGraph);
+		logger.debug("+constructGraph({})", path);
 		
 		Set<Integer> vertices = new HashSet<Integer>();
 		Set<Integer> timestamps = new HashSet<Integer>();
@@ -254,7 +250,7 @@ public class TimeEvolvingGraphDecremental {
 			e.printStackTrace();
 		} 
 		
-		logger.debug("-constructGraph({}, buildSnapshotGraph = {})", path, buildSnapshotGraph);
+		logger.debug("-constructGraph({})", path);
 
 	}
 	
@@ -317,7 +313,6 @@ public class TimeEvolvingGraphDecremental {
 	public double[] getCentralityDynamicIncremental(int source) {
 		double[] centralities = new double[this.numSnapshots];
 		Arrays.fill(centralities, 0);
-		
 		
 		SSSPTree tree = this.buildSSSPTree(source, this.deltaGraphIncremental.get(0));
 		centralities[0] = tree.getCentrality(this.numVertices);
@@ -490,8 +485,6 @@ public class TimeEvolvingGraphDecremental {
 		Map<Integer, Set<Integer>> parentsMap = new HashMap<Integer, Set<Integer>>();
 		Map<Integer, Set<Integer>> childrenMap = new HashMap<Integer, Set<Integer>>();
 		
-		int totalDistances = 0;		
-		
 		int level = 0;
 		
 		Set<Integer> currentLevel = new HashSet<Integer>();
@@ -502,15 +495,16 @@ public class TimeEvolvingGraphDecremental {
 		
 		while (currentLevel.size() > 0) {
 			
-			// Update distance
-			totalDistances += level * currentLevel.size();
-
 			// Add next level
 			for (int vertex: currentLevel) {
 						
 				if (!initialGraph.containsKey(vertex)) continue;
 				
 				for (Integer child: initialGraph.get(vertex)) {
+					
+					if (currentLevel.contains(child)) {
+						continue;
+					}
 					
 					if (!nodeLevelMap.containsKey(child)) {
 						nodeLevelMap.put(child, level + 1);
@@ -575,7 +569,7 @@ public class TimeEvolvingGraphDecremental {
 			
 		}
 		
-		SSSPTree tree = new SSSPTree(this.cloneGraph(initialGraph), totalDistances, source, nodeLevelMap, parentsMap, childrenMap);
+		SSSPTree tree = new SSSPTree(this.cloneGraph(initialGraph), source, nodeLevelMap, parentsMap, childrenMap);
 		
 		return tree;
 		
@@ -591,21 +585,26 @@ public class TimeEvolvingGraphDecremental {
 //		String path = "data/youtube-d-growth.txt.teg.sim";
 //		String path = "data/out.wikipedia-growth.teg.sim";
 //		String path = "data/dblp-2018-01-01.xml.teg.sim";
-		String path = "data/Scale21_Edge16.raw.uniform.100.0.05";
+		String path = "data/Scale17_Edge16.raw.uniform.2000.0.05";
 //		String path = "data/sample.txt";
 		
 		
 //		path = "data/dblp-2018-01-01.xml.teg.sim";
 		graph.constructGraph(path);
-//		double[] centralities1 = graph.getCentralityRangeBased(10);
-//		for (double d: centralities1) {
-//			System.out.println(d);
-//		}
-//		
-		double[] centralities2 = graph.getCentralityDynamicIncremental(10);
+		double[] centralities1 = graph.getCentralityRangeBased(0);
+		for (double d: centralities1) {
+			System.out.println(d);
+		}
+		
+		double[] centralities2 = graph.getCentralityDynamicIncremental(0);
 		for (double d: centralities2) {
 			System.out.println(d);
 		}
+		
+		for (int i = 0; i < centralities1.length; i++) {
+			System.out.println(centralities1[i] - centralities2[i]);
+		}
+		
 		
 //		double[] centralities3 = graph.getCentralitySnapshotBased(10);
 //		for (double d: centralities3) {
