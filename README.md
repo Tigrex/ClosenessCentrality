@@ -1,11 +1,14 @@
-Source codes to compute evolving closeness centralities in time evolving graphs:
 
-1. Graphs with both edge insertions and deletions
-(closeness.centrality.deletion.TimeEvolvingGraphDecremental)
+## Online appendix
+* [This file](https://github.com/Tigrex/ClosenessCentrality/blob/master/appendix.pdf) shows the appendix for the paper "Efficient Closeness Centrality Computation in Time-Evolving Graphs"
 
-The file contains implementations for ECC algorithm and dynamic SSSP baseline algorithm.
 
-2. Graphs with only edge insertions
-(closeness.centrality.insertion.TimeEvolvingGraphIncremental)
+## Source codes 
 
-The file contains implementations for ECCI algorithm and dynamic SSSP baseline algorithm.
+* Graphs with both edge insertions and deletions
+
+[This file](https://github.com/Tigrex/ClosenessCentrality/blob/master/src/closeness/centrality/deletion/TimeEvolvingGraphDecremental.java) contains implementations for ECC algorithm and dynamic SSSP baseline algorithm.
+
+* Graphs with only edge insertions
+
+[This file](https://github.com/Tigrex/ClosenessCentrality/blob/master/src/closeness/centrality/insertion/TimeEvolvingGraphIncremental.java) contains implementations for ECCI algorithm and dynamic SSSP baseline algorithm.
